@@ -1,0 +1,24 @@
+{
+  "name": "github-mcp-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted GitHub MCP server (gh_* tools over the REST/GraphQL API) on Cloudflare Workers, authenticated by Cloudflare Access Managed OAuth",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.mjs",
+    "tail": "wrangler tail"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260810.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.120.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bytask/github-mcp-worker.git"
+  }
+}

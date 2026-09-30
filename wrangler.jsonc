@@ -1,0 +1,22 @@
+{
+  // github-mcp-worker: the GitHub REST / GraphQL API as a remote MCP server, protected by Cloudflare Access (Managed OAuth).
+  // Fill in the values marked TODO. See README.md → "Setup".
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "github-mcp",
+  // "account_id": "<your Cloudflare account id>", // optional; or set CLOUDFLARE_ACCOUNT_ID
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  // Only the Access-protected custom domain is public. Keep workers.dev and preview URLs off,
+  // otherwise requests could reach the Worker without passing Access (they would still be rejected with 403).
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "github-mcp.example.com", "custom_domain": true }], // TODO: a hostname in a zone on your account
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "https://<your-team>.cloudflareaccess.com", // TODO: Zero Trust team domain
+    "ACCESS_AUD": "<application-audience-tag>", // TODO: AUD tag of the Access application
+    "DEFAULT_OWNER": "", // optional: owner used when a tool call omits it (e.g. your user or org)
+    "GITHUB_API": "https://api.github.com"
+  },
+  // secrets: GITHUB_TOKEN (GitHub personal access token) → npx wrangler secret put GITHUB_TOKEN
+  "observability": { "enabled": true }
+}
