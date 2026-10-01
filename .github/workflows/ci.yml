@@ -1,17 +1,15 @@
+# PR と作業ブランチ（tskf/*）のチェック。本番には触らない。
+# 型は tskf の再利用可能ワークフロー（01-operations/playbooks/infra/dev-flow.md）
 name: CI
 on:
-  push:
-    branches: [main]
   pull_request:
+  push:
+    branches: ["tskf/**"]
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
+  ci:
+    uses: bytask/tskf/.github/workflows/worker-ci.yml@main
+    with:
+      wrangler_types: false
+      typecheck: npm run typecheck
+      test: npm test
+      dry_run: false
