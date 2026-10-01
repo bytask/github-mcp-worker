@@ -1,15 +1,27 @@
 # PR と作業ブランチ（tskf/*）のチェック。本番には触らない。
-# 型は tskf の再利用可能ワークフロー（01-operations/playbooks/infra/dev-flow.md）
+# 公開 repo は private repo（bytask/tskf）の再利用可能ワークフローを呼べないので、
+# 型（tskf 01-operations/playbooks/infra/dev-flow.md）を写してある。直すときは両方。
 name: CI
 on:
   pull_request:
   push:
     branches: ["tskf/**"]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
 jobs:
-  ci:
-    uses: bytask/tskf/.github/workflows/worker-ci.yml@main
-    with:
-      wrangler_types: false
-      typecheck: npm run typecheck
-      test: npm test
-      dry_run: false
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
