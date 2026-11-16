@@ -16,7 +16,10 @@
     "ACCESS_AUD": "<application-audience-tag>", // TODO: AUD tag of the Access application
     "DEFAULT_OWNER": "", // optional: owner used when a tool call omits it (e.g. your user or org)
     "GITHUB_API": "https://api.github.com"
+    // optional: more GitHub accounts, each served at /<key>/mcp with its own token (secret GITHUB_TOKEN_<KEY>, uppercase, "-" → "_").
+    // "ACCOUNTS": { "work": { "default_owner": "octo-org" } } // → https://<host>/work/mcp, secret GITHUB_TOKEN_WORK
   },
   // secrets: GITHUB_TOKEN (GitHub personal access token) → npx wrangler secret put GITHUB_TOKEN
+  //          plus GITHUB_TOKEN_<KEY> for each entry in ACCOUNTS
   "observability": { "enabled": true }
 }
