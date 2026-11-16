@@ -135,6 +135,28 @@ claude mcp add --transport http github https://github-mcp.example.com/mcp
 
 Then run `/mcp` in Claude Code and authenticate.
 
+### 5. More GitHub accounts (optional)
+
+A connector is tied to one GitHub identity. To use a second account (for example a work account next to your personal one), serve it from the same Worker and Access application at its own path and add one more connector:
+
+1. Create a token for that account (step 1). A fine-grained token covers one resource owner; to reach both the account's own repos and an organization's repos with one token, use a classic token (scopes `repo`, `workflow`, `read:org`).
+2. Add the account to `ACCOUNTS` in `wrangler.jsonc`. The key becomes the path (`/<key>/mcp`; lowercase letters, digits and `-`):
+
+   ```jsonc
+   "ACCOUNTS": { "work": { "default_owner": "octo-org" } }
+   ```
+
+3. Store its token as `GITHUB_TOKEN_<KEY>` (uppercase, `-` → `_`) and deploy:
+
+   ```sh
+   npx wrangler secret put GITHUB_TOKEN_WORK
+   npm run deploy
+   ```
+
+4. Add a connector with the URL `https://github-mcp.example.com/work/mcp`.
+
+Paths not listed in `ACCOUNTS` return 404. An account never falls back to `GITHUB_TOKEN`: until its secret is set, its endpoint runs unconfigured (only `gh_status`). Every endpoint is behind the same Access policy, so anyone allowed in can use every account; use a separate hostname and Access application if that is not what you want.
+
 ## How it works
 
 - **Stateless**: no `Mcp-Session-Id`, no SSE; each POST is an independent JSON-RPC request (batches supported).
@@ -147,7 +169,7 @@ Then run `/mcp` in Claude Code and authenticate.
 | Task | How |
 |---|---|
 | Logs | `npm run tail` |
-| Rotate the GitHub token | `npx wrangler secret put GITHUB_TOKEN`. A revoked or expired token shows up as 401 in `gh_status` |
+| Rotate the GitHub token | `npx wrangler secret put GITHUB_TOKEN` (or `GITHUB_TOKEN_<KEY>` for an extra account). A revoked or expired token shows up as 401 in `gh_status` |
 | Allow more people | Add them to the Access policy. They all act as the token's owner on GitHub |
 | Disconnect all clients | Access application → Revoke existing tokens; clients reconnect with Connect |
 | Recreated the Access app | The AUD changes; update `ACCESS_AUD` and redeploy |
@@ -157,7 +179,7 @@ Costs: the Worker fits the Workers free plan for personal use, Access is within 
 
 ## Limitations
 
-- Single GitHub identity: every allowed user acts through one token. For per-user GitHub identities you would need a GitHub App or GitHub OAuth instead.
+- One GitHub identity per endpoint: every allowed user acts through that endpoint's token. Extra accounts get their own endpoint (step 5), but the identity is chosen by the connector, not by the signed-in user. For per-user GitHub identities you would need a GitHub App or GitHub OAuth instead.
 - `gh_checks` cannot show check-run details with a fine-grained token (see step 1).
 
 ## License

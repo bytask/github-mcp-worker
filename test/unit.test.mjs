@@ -212,6 +212,21 @@ test("gh_checks falls back to Actions workflow runs when check runs are forbidde
   assert.equal(calls.at(-1).query.head_sha, sha);
 });
 
+test("gh_repos_list lists the token's own user via /user/repos so private repos are included", async () => {
+  routes["GET /user"] = { login: "Octo-User" };
+  routes["GET /users/octo-user/repos"] = [];
+  routes["GET /user/repos"] = [{ full_name: "octo-user/secret", private: true }];
+  const r = JSON.parse((await callTool("gh_repos_list", { owner: "octo-user" }, ctx())).content[0].text);
+  assert.equal(r.items[0].full_name, "octo-user/secret");
+  assert.deepEqual(calls.map((c) => c.path), ["/orgs/octo-user/repos", "/user", "/user/repos"]);
+  assert.equal(calls[2].query.affiliation, "owner");
+  assert.equal(calls[2].query.type, undefined);
+  calls = [];
+  await callTool("gh_repos_list", { owner: "octo-user", type: "private" }, ctx());
+  assert.equal(calls[2].query.visibility, "private");
+  assert.equal(calls[2].query.affiliation, "owner");
+});
+
 test("gh_api refuses full URLs outside api.github.com (the token is never sent elsewhere)", async () => {
   const r = await callTool("gh_api", { path: "https://evil.example/steal" }, ctx());
   assert.equal(r.isError, true);
@@ -226,7 +241,7 @@ test("gh_repos_list falls back from org to user, gh_search maps code results", a
   routes["GET /users/someone/repos"] = [{ full_name: "someone/r", private: false }];
   const r = JSON.parse((await callTool("gh_repos_list", { owner: "someone" }, ctx())).content[0].text);
   assert.equal(r.items[0].full_name, "someone/r");
-  assert.deepEqual(calls.map((c) => c.path), ["/orgs/someone/repos", "/users/someone/repos"]);
+  assert.deepEqual(calls.map((c) => c.path), ["/orgs/someone/repos", "/user", "/users/someone/repos"]);
   routes["GET /search/code"] = { total_count: 1, items: [{ path: "a/b.ts", sha: "0123456789abcdef", repository: { full_name: "octo-org/octo-repo" }, html_url: "u" }] };
   const s = JSON.parse((await callTool("gh_search", { type: "code", q: "repo:octo-org/octo-repo foo" }, ctx())).content[0].text);
   assert.deepEqual(s.items[0], { repo: "octo-org/octo-repo", path: "a/b.ts", sha: "0123456789ab", html_url: "u" });

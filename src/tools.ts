@@ -494,7 +494,7 @@ export const TOOLS: Tool[] = [
   // ----- repositories -----
   {
     name: "gh_repos_list",
-    description: "List repositories. With owner: that org's (or user's) repos. Without owner: repos the token can access (owner/collaborator/org member), newest push first.",
+    description: "List repositories. With owner: that org's (or user's) repos; for the token's own user this includes private repos. Without owner: repos the token can access (owner/collaborator/org member), newest push first.",
     inputSchema: S({
       owner: str("Org or user login. Omit for 'all repos accessible to the token'."),
       type: enumOf("Filter (org: all/public/private/forks/sources/member; user: all/owner/member)", ["all", "public", "private", "forks", "sources", "member", "owner"]),
@@ -514,7 +514,20 @@ export const TOOLS: Tool[] = [
           r = await gh.get<Any>(`/orgs/${owner}/repos`, q);
         } catch (e) {
           if (!(e instanceof GhError && e.status === 404)) throw e;
-          r = await gh.get<Any>(`/users/${owner}/repos`, q);
+          // /users/{owner}/repos returns public repos only, even for the token's own user.
+          // For the authenticated user, list via /user/repos so private repos are included.
+          const me = await gh.get<Any>("/user").then((u) => u.data?.login as string | undefined, () => undefined);
+          if (me && me.toLowerCase() === owner.toLowerCase()) {
+            const type = opt<string>(a, "type");
+            r = await gh.get<Any>("/user/repos", {
+              ...q,
+              type: undefined,
+              visibility: type === "public" || type === "private" ? type : undefined,
+              affiliation: type === "member" ? "collaborator,organization_member" : type === "all" ? "owner,collaborator,organization_member" : "owner",
+            });
+          } else {
+            r = await gh.get<Any>(`/users/${owner}/repos`, q);
+          }
         }
       }
       return { items: (r.data as Any[]).map(slimRepo), next_page: nextPage(r.headers) };
